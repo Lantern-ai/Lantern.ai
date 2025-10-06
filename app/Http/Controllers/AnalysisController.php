@@ -32,9 +32,12 @@ class AnalysisController extends Controller
     {
         $script = Script::findOrFail($script_id);
 
+        $graph_data = $this->analyze3Act($script);
+
         return view('analysis', [
             'script_id' => $script_id,
-            'script_title' => $script->title ?? 'Untitled Script'
+            'script_title' => $script->title ?? 'Untitled Script',
+            'graph_data' => $graph_data ?? ''
         ]);
     }
 
@@ -57,7 +60,7 @@ class AnalysisController extends Controller
             $nodes = $this->parseScriptToNodes($scriptText);
 
             // 4. Call Python API
-            $api_url = config('services.script_analyzer.url', 'http://127.0.0.1:8080/analyze-scene/');
+            $api_url = "http://127.0.0.1:8080/analyze-scene/";
             Log::info("Inisde fetch analysis".$api_url);
             $response = Http::timeout(160)
                 ->withHeaders([
@@ -111,5 +114,68 @@ class AnalysisController extends Controller
             })
             ->values()
             ->toArray();
+    }
+
+    public function analyze3Act(Script $script)
+    {
+
+        Log::info("Inisde analyze3act".$script);
+        // Your DB may store the whole doc or just the nodes.
+        // Try to decode and pull out the `content` array either way.
+        $raw = $script->content; // could be array or JSON string
+
+        if (is_string($raw)) {
+            $decoded = json_decode($raw, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $raw = $decoded;
+            }
+        }
+
+        // If it's a Tiptap doc { type: 'doc', content: [...] }, extract nodes.
+        if (is_array($raw) && isset($raw['type']) && isset($raw['content'])) {
+            $contentNodes = $raw['content'];
+        } else {
+            // If already an array of nodes, use it; otherwise null.
+            $contentNodes = is_array($raw) ? $raw : null;
+        }
+
+        // Build payload for the single `/analyze` endpoint.
+        // If we couldn’t obtain nodes, fall back to plain text (if you store it).
+        $payload = [
+            // Prefer content (Tiptap nodes) when available:
+            'content'        => $contentNodes,
+            // Optional: if you also store a plain text version, send it as fallback:
+
+            // 'weights'      => ['action'=>0.25,'conflict'=>0.2,'stakes'=>0.15,'urgency'=>0.15,'arousal'=>0.15,'pacing'=>0.1],
+        ];
+
+        // Clean out nulls so FastAPI receives only what’s relevant
+        $payload = array_filter($payload, fn($v) => !is_null($v));
+
+        // Point to your FastAPI server (adjust if you kept a different route).
+        $url = "http://127.0.0.1:8080/analyze-three-act";
+
+        try {
+            $res = Http::timeout(30)->acceptJson()->post($url, $payload);
+            Log::info('Analyze3Act response: '.$res->body());
+        } catch (\Throwable $e) {
+//            Log::error('Analyze3Act HTTP error: '.$e->getMessage(), ['script_id' => $script_id]);
+            return [
+                'error' => 'Analyzer service unreachable',
+                'message' => $e->getMessage(),
+            ];
+        }
+
+        if (!$res->successful()) {
+            Log::warning('Analyze3Act non-2xx', ['status' => $res->status(), 'body' => $res->body()]);
+            return [
+                'error'  => 'Analyzer failed',
+                'status' => $res->status(),
+                'body'   => $res->json() ?? $res->body(),
+            ];
+        }
+
+        // Success: return the analyzer’s plot-ready payload
+        return $res->json();
     }
 }

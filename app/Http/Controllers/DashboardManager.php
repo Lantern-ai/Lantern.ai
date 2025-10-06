@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 class DashboardManager extends Controller
 {
     public function index(){
-       $scripts =  Script::where('user_id',auth()->id())->get();
+       $scripts =  Script::where('user_id',auth()->id())->orderBy('created_at','desc')->get();
 
         return view('dashboard',compact('scripts'));
     }

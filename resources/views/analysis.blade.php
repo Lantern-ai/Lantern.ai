@@ -10,6 +10,9 @@
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.10.1/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
@@ -52,6 +55,9 @@
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:items-start">
                 <!-- Left Column: Narrative Analysis -->
                 <div class="space-y-8">
+                    <!-- Energy Graph Card -->
+
+
                     <!-- Narrative Analysis Card -->
                     <div class="card bg-base-200 shadow-xl border border-base-300/50">
                         <div class="card-body">
@@ -62,6 +68,7 @@
                                 <span class="loading loading-spinner loading-lg text-primary"></span>
                                 <p class="mt-4 text-base-content/70">Analyzing narrative structure...</p>
                             </div>
+
 
                             <!-- Content (Hidden Initially) -->
                             <div id="narrative-content" class="hidden">
@@ -82,6 +89,15 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span id="narrative-error-message"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card bg-base-200 shadow-xl border border-base-300/50">
+                        <div class="card-body">
+                            <h3 class="card-title text-2xl">Story Energy Curve</h3>
+                            <p class="text-base-content/70 text-sm mb-4">Visual representation of narrative intensity across pages</p>
+                            <div class="h-80">
+                                <canvas id="energyChart"></canvas>
                             </div>
                         </div>
                     </div>
@@ -200,12 +216,130 @@
             </div>
         </div>
     </main>
+
 </div>
 
 <script>
+    const graphData = @json($graph_data);
+    console.log(graphData);
+
     // Get script ID from the page
     const scriptId = {{ $script_id ?? 'null' }};
     console.log(scriptId);
+
+    // Initialize Energy Chart
+    function initEnergyChart(data) {
+        const ctx = document.getElementById('energyChart').getContext('2d');
+
+        // Extract series data
+        const series = data.series || [];
+        const pages = series.map(item => item.page);
+        const energyValues = series.map(item => item.energy);
+
+        // Extract markers
+        const markers = data.markers || [];
+
+        // Create gradient
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(99, 102, 241, 0.5)');
+        gradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: pages,
+                datasets: [{
+                    label: 'Story Energy',
+                    data: energyValues,
+                    borderColor: 'rgb(99, 102, 241)',
+                    backgroundColor: gradient,
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    pointBackgroundColor: 'rgb(99, 102, 241)',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointHoverBackgroundColor: 'rgb(99, 102, 241)',
+                    pointHoverBorderColor: '#fff',
+                    pointHoverBorderWidth: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        padding: 12,
+                        titleFont: {
+                            size: 14,
+                            weight: 'bold'
+                        },
+                        bodyFont: {
+                            size: 13
+                        },
+                        callbacks: {
+                            title: function(context) {
+                                return 'Page ' + context[0].label;
+                            },
+                            label: function(context) {
+                                const marker = markers.find(m => m.page === context.parsed.x);
+                                let label = 'Energy: ' + context.parsed.y.toFixed(2);
+                                if (marker) {
+                                    label += '\n📍 ' + marker.label;
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Page',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: 'Energy/Stakes/Tension',
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        },
+                        min: 0,
+                        max: 1,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Initialize chart with graph data
+    if (graphData && graphData.series) {
+        initEnergyChart(graphData);
+    }
 
     // Fetch and display analysis results
     async function fetchAnalysis() {

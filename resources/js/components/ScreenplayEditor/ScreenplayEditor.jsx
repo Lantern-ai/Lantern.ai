@@ -19,7 +19,6 @@ import { Note } from '../../extensions/Note';
 import { Montage } from '../../extensions/Montage';
 import { DualDialogue } from '../../extensions/DualDialogue';
 import { SlashCommands, slashCommandSuggestion } from '../../extensions/SlashCommands';
-import { SmartDetection } from '../../extensions/SmartDetection';
 import { ParagraphExtension } from '../../extensions/ParagraphExtension';
 import { DragHandleExtension } from '../../extensions/DragHandleExtension';
 
@@ -102,7 +101,6 @@ const ScreenplayEditor = ({content}) => {
       SlashCommands.configure({
         suggestion: slashCommandSuggestion,
       }),
-      SmartDetection,
       ParagraphExtension,
       DragHandleExtension,
     ],

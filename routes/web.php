@@ -26,12 +26,22 @@ Route::get('/script/create', [EditorManager::class, 'index'])->name('script.crea
 Route::post('/script/create', [EditorManager::class, 'create'])->name('script.store');
 Route::post('/editor/save', [EditorManager::class, 'save'])->name('script.save');
 //Route::get('/analyse-script/{id}', [AnalysisController::class, 'analyze'])->name('script.analyse');
-Route::get('/viewmindmap/{id}', [MindmapManager::class, 'viewMindmap'])->name("viewMindmap");
+
+    Route::get('/viewmindmap/{id}', [MindmapManager::class, 'viewMindmap'])->name("viewMindmap");
+
+    Route::post('/regenCharMindMap', [MindmapManager::class, 'generateChrRelationMmRegen'])->name("regenCharMindMap");
+
+    Route::post('/regen-char-mindmap-withcharacter', [MindmapManager::class, 'generateChrRelationMmRegenWithCharacter'])->name('regenCharMindMapWithCharacter');
+
+    Route::post('/gen-pacing-map', [MindmapManager::class, 'generatePacingMindMap'])->name("generatePacingMindMap");
+    Route::post('/gen-pacing-map-handler-force', [MindmapManager::class, 'forceGeneratePacingMindMap'])->name("forceGeneratePacingMindMap");
+
     Route::get('/analyse-script/{script_id}', [AnalysisController::class, 'showAnalysis'])
         ->name('analysis.show');
 
 Route::post('/analyse-script', [AnalysisController::class, 'fetchAnalysis'])
         ->name('api.analysis.fetch');
-Route::post('/regenerate-mindmap', [MindmapManager::class, 'generateChrRelationMmRegen'])->name("regenCharMindMap");
+
+Route::get('/3-act/{script_id}',[AnalysisController::class,'analyze3Act'])->name('script.3act');
 Route::get('/logout', [AuthManager::class, 'logout'])->name('logout');
 });

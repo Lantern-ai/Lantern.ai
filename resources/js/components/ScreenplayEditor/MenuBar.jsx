@@ -173,13 +173,13 @@ const MenuBar = ({
           <FileDown size={18} />
         </button>
 
-        <button
-          onClick={onExportPDF}
-          className="menu-bar-button menu-bar-button-primary"
-          title="Export PDF"
-        >
-          PDF
-        </button>
+        {/*<button*/}
+        {/*  onClick={onExportPDF}*/}
+        {/*  className="menu-bar-button menu-bar-button-primary"*/}
+        {/*  title="Export PDF"*/}
+        {/*>*/}
+        {/*  PDF*/}
+        {/*</button>*/}
           <button
               onClick={saveContent}
               className="menu-bar-button menu-bar-button-primary"

@@ -6,7 +6,6 @@ use App\Models\Script;
 use App\Services\Script\ScriptParser;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
-use App\Models\Scripts;
 
 class GeminiServiceStatic
 {
@@ -78,6 +77,7 @@ class GeminiServiceStatic
     public static function structuredAskChrRelationMm($scriptId) {
 
         $prompt = "Find the main character from the script and give the relationships of the character towards other characters, including a short description.";
+
 
         $queryResult = Script::where("id", $scriptId)->where("user_id", Auth::user()->id)->first()->content;
         $sp = new ScriptParser($queryResult);
@@ -282,175 +282,6 @@ class GeminiServiceStatic
                         ]
                     ],
                     "propertyOrdering" => ["mainCharacter", "relations"]
-                ]
-            ]
-        ];
-
-        $response = Http::timeout(200)
-            ->withHeaders([
-                'Content-Type'   => 'application/json',
-                'x-goog-api-key' => config('services.gemini.key'),
-            ])
-            ->post($endpoint, $payload);
-
-        if ($response->failed()) {
-            // return the API’s error payload and HTTP status to the client
-            return response()->json([
-                'message' => 'Gemini API request failed',
-                'error'   => $response->json(),
-            ], $response->status());
-        }
-
-        // Safely pull out the first text candidate
-        // $output = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        $output = $response->json();
-
-        return [
-            'prompt' => $prompt,
-            'output' => $output,
-            // 'raw' => $data, // uncomment if you want full API response for debugging
-        ];
-
-    }
-
-    public static function structuredAskChrRelationMmWithCharacter(String $character,  $scriptId) {
-        $prompt = "For the character" . $character . "from the script, give the relationships of the character towards other characters, including a short description.";
-
-        $queryResult = Script::where("id", $scriptId)->where("user_id", Auth::user()->id)->first()->content;
-        $sp = new ScriptParser($queryResult);
-
-        $context = $sp->toFountain();
-
-        // $context = "John is the father of Henry";
-
-        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
-        $payload = [
-            'systemInstruction' => [
-                "parts" => [
-                    "text" => "You are a professional script writer and helper. You will be provided with a script summary, or relevant scenes from the script for the user prompt, etc.. and user will ask help or queries. You should provide the correct helpful answer to the user. Reply to the conversation below:"
-                ]
-            ],
-            'contents' => [
-                [
-                    // role is optional; Google's examples often omit it
-                    'parts' => [
-                        ['text' => $context . "\n\n" . $prompt],
-                    ],
-                ],
-            ],
-            'generationConfig' => [
-                "responseMimeType" => "application/json",
-                "responseSchema" => [
-                    "type" => "OBJECT",
-                    "properties" => [
-
-                        "mainCharacter" => [
-                            "type" => "STRING"
-                        ],
-
-                        "relations" => [
-                            "type" => "ARRAY",
-                            "items" => [
-                                "type" => "OBJECT",
-                                "properties" => [
-
-                                    "characterName" => [
-                                        "type" => "STRING"
-                                    ],
-
-                                    "characterRelation" => [
-                                        "type" => "STRING"
-                                    ],
-
-                                    "characterRelationDescription" => [
-                                        "type" => "STRING"
-                                    ]
-                                ],
-                                "propertyOrdering" => ["characterName", "characterRelation", "characterRelationDescription"]
-                            ]
-                        ]
-                    ],
-                    "propertyOrdering" => ["mainCharacter", "relations"]
-                ]
-            ]
-        ];
-
-        $response = Http::timeout(200)
-            ->withHeaders([
-                'Content-Type'   => 'application/json',
-                'x-goog-api-key' => config('services.gemini.key'),
-            ])
-            ->post($endpoint, $payload);
-
-        if ($response->failed()) {
-            // return the API’s error payload and HTTP status to the client
-            return response()->json([
-                'message' => 'Gemini API request failed',
-                'error'   => $response->json(),
-            ], $response->status());
-        }
-
-        // Safely pull out the first text candidate
-        // $output = $data['candidates'][0]['content']['parts'][0]['text'] ?? null;
-
-        $output = $response->json();
-
-        return [
-            'prompt' => $prompt,
-            'output' => $output,
-            // 'raw' => $data, // uncomment if you want full API response for debugging
-        ];
-    }
-
-    public static function genPaceMap($scriptId) {
-        $prompt = "Can you identify the pacing issues in the given script by providing short one-line scene descriptions of scenes that are slow paced and scenes that are fast paced? Only identify the most important pacing issues.";
-        $queryResult = Script::where("id", $scriptId)->first()->content;
-        $sp = new ScriptParser($queryResult);
-
-        $context = $sp->toFountain();
-
-        // $context = "John is the father of Henry";
-
-        $endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent';
-
-        $payload = [
-            'systemInstruction' => [
-                "parts" => [
-                    "text" => "You are a professional script writer and helper. You will be provided with a script summary, or relevant scenes from the script for the user prompt, etc.. and user will ask help or queries. You should provide the correct helpful answer to the user. Reply to the conversation below:"
-                ]
-            ],
-            'contents' => [
-                [
-                    // role is optional; Google's examples often omit it
-                    'parts' => [
-                        ['text' => $context . "\n\n" . $prompt],
-                    ],
-                ],
-            ],
-            'generationConfig' => [
-                "responseMimeType" => "application/json",
-                "responseSchema" => [
-                    "type" => 'OBJECT',
-                    "properties" => [
-
-                        "slowPaced" => [
-                            "type" => 'ARRAY',
-                            "items" => [
-                                "type" => "STRING"
-                            ]
-                        ],
-
-                        "fastPaced" => [
-                            "type" => 'ARRAY',
-                            "items" => [
-                                "type" => "STRING"
-                            ]
-                        ]
-
-                    ],
-                    "propertyOrdering" => ["slowPaced", "fastPaced"]
                 ]
             ]
         ];

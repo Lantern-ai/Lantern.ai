@@ -145,14 +145,13 @@ const ChatSidebar = forwardRef(({ editor, content, isVisible, onClose }, ref) =>
           console.log('Inserting at beginning, position:', insertPos);
         }
 
-        // 3) Create and insert a new empty block of the same type
-        // Ensure we have a proper content array
+        // 3) Create and insert a new block with a space as placeholder
         const newBlockContent = {
           type: originalBlockType,
           attrs: blockAttrs,
           content: [{
             type: 'text',
-            text: '' // Empty text node
+            text: ' ' // Space as placeholder to avoid empty text node error
           }]
         };
 
@@ -167,7 +166,7 @@ const ChatSidebar = forwardRef(({ editor, content, isVisible, onClose }, ref) =>
 
         console.log('Insert result:', insertResult);
 
-        // 4) Position cursor inside the new block and type
+        // 4) Find the newly inserted block
         const finalState = editor.state;
         const $final = finalState.doc.resolve(insertPos);
         const newBlock = $final.nodeAfter || finalState.doc.nodeAt(insertPos);
@@ -183,21 +182,18 @@ const ChatSidebar = forwardRef(({ editor, content, isVisible, onClose }, ref) =>
           expectedType: originalBlockType
         });
 
-        // Verify the block type is correct
-        if (newBlock.type.name !== originalBlockType) {
-          console.error('BLOCK TYPE MISMATCH!', {
-            expected: originalBlockType,
-            actual: newBlock.type.name
-          });
-          return;
-        }
+        // 5) Clear the placeholder space and type character by character
+        const blockStart = insertPos;
+        const blockContentStart = blockStart + 1;
+        const blockContentEnd = blockStart + newBlock.nodeSize - 1;
 
-        const cursorPos = insertPos + 1; // Inside the new block
-        console.log('Setting cursor position:', cursorPos);
+        // Delete the placeholder space
+        editor.chain().deleteRange({ from: blockContentStart, to: blockContentEnd }).run();
 
-        editor.chain().focus().setTextSelection(cursorPos).run();
+        // Set cursor at the beginning of the block content
+        editor.chain().setTextSelection(blockContentStart).run();
 
-        // 5) Type character by character with typewriter effect
+        // 6) Type character by character with typewriter effect
         for (const ch of safe) {
             editor.chain().insertContent(ch).run();
             await sleep(msPerChar);
